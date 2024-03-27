@@ -1,4 +1,3 @@
-
 ---
 title: Celery
 description: Celery, FastAPI, Redis, Flower를 이용한 비동기 분산처리 구현 프로젝트
@@ -9,7 +8,6 @@ published: true
 # Celery
 
 1. Celery 란?
-    
     비동기 분산 처리를 위한 프레임워크 
     
 2. 장,단점
@@ -48,7 +46,7 @@ published: true
 3. 조건
     1. FastAPI, Redis, Celery worker, Flower 모두 다른 환경에서 동작하며 중복되는 코드를 최대한 제거한다.
 4. TIP
-    - 테스트 시 {task}.delay의 결과를 어떻게 받을 것인가에 따라 요청의 처리속도가 달라지는 것을 확인했다.
+    - 테스트 시 task.delay의 결과를 어떻게 받을 것인가에 따라 요청의 처리속도가 달라지는 것을 확인했다.
         - 요청의 응답으로 ID를 반환(=get() 사용 X)
             - 장점 : 요청의 개수에 관계 없이 빠르게 worker에 분배되며 FastAPI 엔드 포인트에서도 바로 ID를 통해 응답 받을 수 있다.(비동기식 처리가 가능)
             - 단점 : 유저 입장에서는 ID를 받아서 FastAPI 다른 엔드포인트에서 작업에 대한 상태 값을 직접 확인해 완료 상태일 때 결과를 확인할 수 있다.(유저 편의성 하향)
