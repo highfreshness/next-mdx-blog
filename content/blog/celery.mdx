@@ -1,10 +1,9 @@
 ---
 title: Celery 란?
 description: Celery, FastAPI, Redis, Flower를 이용한 비동기 분산처리 구현 프로젝트
-date: 2024-03-27
+date: 2024-03-28
 published: true
 ---
-
 
 # Celery
 
@@ -56,6 +55,6 @@ published: true
             - 장점 : 요청 시 작업 처리되는 시간만 기다리면 결과가 바로 보이기 때문에 편의성이 올라간다.
             - 단점 : 요청 시 worker의 개수에 따라 한번에 처리할 수 있는 양이 정해져있으며 요청이 쌓여 처리가 안되면 timeout 시간에 따라 500 HTTP response를 받을 수 있다.
     - 기존 FastAPI 컨테이너에서 Celery task를 사용하기 worker 정의가 필요했지만 signature를 사용해 task 등록 없이 worker로 작업에 필요한 값만 보낼 수 있게 되었다.
-5. 궁금한 점
+5. ✨ 의문점
     1. Celery worker의 concurrency 증가 // Celery worker 컨테이너 scale 증가 중 병렬 처리에 더 유효한 방법은 ?
         - 벙렬처리 방법 중 어떤 것이 더 좋은지 고민해봤으나 상황에 따라 다를 것 같다고 판단했다. 단일 환경에서 워커가 동작하고 CPU나 기타 자원을 많이 쓸 수 있을 땐 worker의 동시성 증가가 구성이 편리하고 유리할 것 같았으며 AWS의 EC2 처럼 자원이 한정되어 있고 scale out이 사용 가능한 환경일 땐 컨테이너의 증가가 더 유리할 것 같다고 생각한다.
