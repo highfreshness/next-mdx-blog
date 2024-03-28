@@ -1,0 +1,353 @@
+---
+title: Nginx
+description: Nginx 학습 및 실습
+date: 2024-03-25
+published: true
+---
+
+## Nginx란?
+
+**경량화된 웹 서버로 고성능, 안정적, 역방향 프록시와 같은 다양한 기능을 가진** 
+
+## Nginx의 특장점
+
+- **높은 처리 속도:** 비동기 이벤트 기반 아키텍처를 사용하여 수많은 동시 접속을 효율적으로 처리
+- **낮은 메모리 사용:** 적은 메모리 사용량으로도 높은 성능을 유지
+- **다양한 기능:** 웹 서버, 역방향 프록시, 로드 밸런서, 캐싱, SSL/TLS 터미네이션 등 다양한 기능을 제공
+    - Nginx를 WAS 앞에 놓은 경우 WAS로 직접적인 접속을 막아 IP 노출을 피할 수 있으며 같은 기능을 하는 여러대의 서버를 가지고 있는 경우 현재 동작하지 않는 서버로 요청을 보내 하나의 서버에 가해지는 부하를 덜 수 있다
+- **높은 확장성:** 모듈화된 구조로 필요에 따라 기능을 추가하거나 확장 가능
+- **유연한 설정:** 다양한 설정 옵션을 통해 사용자 환경에 맞게 조정 가능
+- **오픈 소스:** 무료 오픈 소스 소프트웨어로 누구나 자유롭게 사용하고 수정 가능
+
+## Mission
+
+1. Nginx의 인증 전용 페이지에 HTTP 입력으로 액세스 토큰을 주면 Nginx에서 FastAPI의 토큰 검증 API로 보내 인증이 성공적으로 되었다면 로그인이 필요한 보안 페이지로 리다이렉트한다. 
+2. 로그인 실패 시 FastAPI의 HTTP 응답을 그대로 반환한다.
+
+## Mission flow
+
+HTTP response(in access token) → Nginx/login → FastAPI/auth_check → Nginx/login → FastAPI/auth/success 
+
+## 진행
+
+1. Udemy의 Nginx 기초 강의 학습 [[링크](https://www.udemy.com/course/nginx-fundamentals/)]
+    1. Nginx 설치 시 패키지 설치가 아닌 원본 코드로 설치(패키지 설치 시 추가 옵션 제약이 있을 수 있다는 것으로 학습)
+    2. 리눅스 환경에서 실습 진행 시 유저 권한 문제 발생 할 수 있으니 주의
+2. Web Server Nginx와 WAS FastAPI 서버를 로컬에서 설치 후 Postman으로 테스트 진행
+    1. Nginx, FastAPI는 각각의 Dockerfile을 만들어 이미지 생성 후 테스트
+    2. Docker compose로 Nginx, FastAPI를 같이 구동시키고 Network 묶기
+
+## 완성 코드
+
+1. Nginx
+    1. Dockerfile
+        
+        ```bash
+        FROM ubuntu:20.04
+        
+        RUN apt update
+        
+        RUN apt install -y curl \
+            vim \
+            wget \
+            build-essential \
+            libpcre3 \
+            libpcre3-dev \
+            zlib1g \
+            zlib1g-dev \
+            libssl-dev
+        
+        WORKDIR /app
+        
+        RUN wget https://nginx.org/download/nginx-1.24.0.tar.gz && \
+            tar -zxvf nginx-1.24.0.tar.gz
+        
+        WORKDIR /app/nginx-1.24.0
+        
+        RUN ./configure \
+            --sbin-path=/usr/bin/nginx \ 
+            --conf-path=/etc/nginx/nginx.conf \
+            --error-log-path=/var/log/nginx/error.log \
+            --http-log-path=/var/log/nginx/access.log \
+            --pid-path=/var/run/nginx.pid \
+            --with-http_ssl_module \
+            --with-http_auth_request_module
+        
+        RUN make
+        
+        RUN make install
+        
+        COPY nginx.conf /app 
+        
+        RUN mv /app/nginx.conf /etc/nginx/nginx.conf
+        
+        CMD ["nginx", "-g", "daemon off;"]
+        ```
+        
+        1. 주의 및 참고사항
+            1. nginx 파일은 [https://nginx.org/en/download.html](https://nginx.org/en/download.html) 에서 Stable 버전을 선택
+            2. ./configure 시 주는 argument는 상황에 맞게 부여
+            3. nginx -g daemon off 는 nginx 커맨드만 입력할 경우 nginx가 background 에서 돌기 때문에 컨테이너 실행 시 꺼지지 않도록 foreground 로 실행될 수 있게 해주는 역할이다.
+    2. nginx.conf
+        
+        ```bash
+        pid /var/run/nginx.pid;
+        
+        events {}
+        
+        http {
+        
+            upstream api-server {
+                server fastapi:8000;
+            }
+        
+            include /etc/nginx/mime.types;
+        
+            server {
+                listen 80;
+                location /login {
+                    auth_request /auth;
+                    error_page 401 = @auth_failed;
+                    rewrite / /auth/success break;
+                    proxy_pass http://api-server;
+                }
+        
+                location /auth {
+                    internal;
+                    rewrite / /users/me break;
+                    proxy_pass http://api-server;
+                }
+        
+                location /proxy_test {
+                    rewrite / /check break;
+                    proxy_pass http://api-server;
+                }
+          
+                location @auth_failed {
+                    internal;
+                    rewrite / /users/me break; 
+                    proxy_pass http://api-server;
+                }
+            }
+        }
+        ```
+        
+        1. 주의 및 참고사항
+            1. proxy_pass URI를 지정할 때 가급적 upstream 이름만 작성 후 이후 구분자는 rewrite를 사용
+            2. internal 옵션은 외부에서 해당 location 접근을 허락하지 않고 내부에서의 리다이렉트로만 동작하게 하는 옵션이다.
+2. FastAPI
+    1. Dockerfile
+        
+        ```bash
+        FROM python:3.10.13-bullseye
+        
+        WORKDIR /app
+        
+        RUN pip install "fastapi[all]" "passlib[bcrypt]" "python-jose[cryptography]"
+        
+        COPY main.py ./
+        
+        CMD ["uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--log-level", "debug"]
+        
+        ```
+        
+    2. [main.py](http://main.py) ( [참조링크](https://fastapi.tiangolo.com/ko/tutorial/security/oauth2-jwt/#__tabbed_1_1) )
+        
+        ```python
+        from datetime import datetime, timedelta, timezone
+        from typing import Annotated
+        
+        from fastapi import Depends, FastAPI, HTTPException, status
+        from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+        from jose import JWTError, jwt
+        from passlib.context import CryptContext
+        from pydantic import BaseModel
+        
+        # to get a string like this run:
+        # openssl rand -hex 32
+        SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+        ALGORITHM = "HS256"
+        ACCESS_TOKEN_EXPIRE_MINUTES = 30
+        
+        fake_users_db = {
+            "johndoe": {
+                "username": "johndoe",
+                "full_name": "John Doe",
+                "email": "johndoe@example.com",
+                "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
+                "disabled": False,
+            }
+        }
+        
+        class Token(BaseModel):
+            access_token: str
+            token_type: str
+        
+        class TokenData(BaseModel):
+            username: str | None = None
+        
+        class User(BaseModel):
+            username: str
+            email: str | None = None
+            full_name: str | None = None
+            disabled: bool | None = None
+        
+        class UserInDB(User):
+            hashed_password: str
+        
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        
+        oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+        
+        app = FastAPI()
+        app.router.redirect_slashes = False
+        
+        def verify_password(plain_password, hashed_password):
+            return pwd_context.verify(plain_password, hashed_password)
+        
+        def get_password_hash(password):
+            return pwd_context.hash(password)
+        
+        def get_user(db, username: str):
+            if username in db:
+                user_dict = db[username]
+                return UserInDB(**user_dict)
+        
+        def authenticate_user(fake_db, username: str, password: str):
+            user = get_user(fake_db, username)
+            if not user:
+                return False
+            if not verify_password(password, user.hashed_password):
+                return False
+            return user
+        
+        def create_access_token(data: dict, expires_delta: timedelta | None = None):
+            to_encode = data.copy()
+            if expires_delta:
+                expire = datetime.now(timezone.utc) + expires_delta
+            else:
+                expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+            to_encode.update({"exp": expire})
+            encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+            return encoded_jwt
+        
+        async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+            credentials_exception = HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                username: str = payload.get("sub")
+                if username is None:
+                    raise credentials_exception
+                token_data = TokenData(username=username)
+            except JWTError:
+                raise credentials_exception
+            user = get_user(fake_users_db, username=token_data.username)
+            if user is None:
+                raise credentials_exception
+            return user
+        
+        async def get_current_active_user(
+            current_user: Annotated[User, Depends(get_current_user)]
+        ):
+            if current_user.disabled:
+                raise HTTPException(status_code=400, detail="Inactive user")
+            return current_user
+        
+        @app.post("/token")
+        async def login_for_access_token(
+            form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+        ) -> Token:
+            user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect username or password",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            access_token = create_access_token(
+                data={"sub": user.username}, expires_delta=access_token_expires
+            )
+            return Token(access_token=access_token, token_type="bearer")
+        
+        @app.get("/users/me", response_model=User)
+        async def read_users_me(
+            current_user: Annotated[User, Depends(get_current_active_user)]
+        ):
+            return current_user
+        
+        @app.get("/users/me/items")
+        async def read_own_items(
+            current_user: Annotated[User, Depends(get_current_active_user)]
+        ):
+            return [{"item_id": "Foo", "owner": current_user.username}]
+        
+        @app.get("/check")
+        async def access_check():
+            return {"message": "Access OK"}
+        
+        @app.get("/auth/success")
+        async def success_auth():
+            return {"message": "Successful authentication!"}
+        
+        @app.get("/security")
+        async def security_page():
+            return {"message": "Welcom security page."}
+        
+        ```
+        
+        1. 주의 및 참고사항
+            1. 위 main.py의 ID/PW 는 johndoe / secret 이다.
+3. Docker Compose.yaml
+    
+    ```docker
+    version: "3.7"
+    services:
+      nginx:
+        image: vp_nginx:latest
+        ports: 
+          - "80:80"
+        volumes:
+          - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+        networks:
+          - my_network
+      
+      fastapi:
+        image: fastapi_token:latest
+        ports:
+          - "8000:8000"
+        volumes:
+          - ./fastapi_token/main.py:/app/main.py
+        networks:
+          - my_network
+    
+    networks:
+      my_network:
+    ```
+    
+
+## 실험순서 및 결과
+
+1. Fastapi의 /token 에서 ID/PW를 입력 후 Bearer Token 을 복사한다.
+2. Postman 또는 curl 에서 Authorization 헤더에 Bearer Token 값을 추가 후 nginx/login 으로 보낸다.
+3. 성공 시 
+    
+    ```
+    {
+        "message": "Successful authentication!"
+    }
+    ```
+    
+    실패 시 
+    
+    ```json
+    {
+        "detail": "Could not validate credentials"
+    }
+    ```
+    
+4. 위 처럼 인증 실패 시에도 Fastapi 서버의 message를 가져오는 것을 확인할 수 있다.
