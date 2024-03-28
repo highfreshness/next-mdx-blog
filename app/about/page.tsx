@@ -32,7 +32,7 @@ export default async function AboutPage() {
           </p>
         </div>
         <p className="text-muted-foreground text-lg py-4">
-          Hi
+          데이터와 코드로 성장하고 싶은 개발자 최선도입니다.
         </p>
       </div>
     </div>
