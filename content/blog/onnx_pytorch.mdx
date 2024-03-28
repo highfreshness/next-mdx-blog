@@ -1,0 +1,78 @@
+---
+title: 🧑‍💻 KoElectra to ONNX(Pytorch)
+description: Pytorch 모델 ONNX Runtime으로 변환
+date: 2024-01-01
+published: true
+---
+
+
+# KoElectra to ONNX(Pytorch)
+
+## 환경
+
+1. Docker 컨테이너
+    1. Python 이미지(latest : 3.11.4)
+
+## Convert.py
+
+```python
+import torch
+from transformers import TextClassificationPipeline, AutoTokenizer, ElectraForSequenceClassification
+
+# 모델 로딩
+model = torch.load('model.pt', map_location=torch.device('cpu')) # torch.save를 통해 저장한 모델 전체 파일(model.pt)
+
+# 토크나이저 로딩
+tokenizer = AutoTokenizer.from_pretrained("monologg/koelectra-base-v3-discriminator")
+
+model.eval()
+test_string = "일은 왜 해도 해도 끝이 없을까? 화가 난다. 많이 힘드시겠어요. \
+								주위에 의논할 상대가 있나요? 그냥 내가 해결하는 게 나아. \
+								남들한테 부담 주고 싶지도 않고. 혼자 해결하기로 했군요. \
+								혼자서 해결하기 힘들면 주위에 의논할 사람을 찾아보세요."
+input_ids = tokenizer.encode(test_string, return_tensors='pt')
+
+torch.onnx.export(
+    model,     # model 설정
+    input_ids, # 토크나이저의 출력을 input으로 설정
+    "monologg-koelectra-base-v3-discriminator.onnx", # model path
+    export_params=True,
+    opset_version=12,
+    do_constant_folding=True,
+    input_names = ['modelInput'],
+    output_names = ['modelOutput'],
+    dynamic_axes = {
+        'modelInput' : {0 : 'batch_size'}, # batch_size에 따라 shape(0번째)가 변동될 수 있음
+        'modelOutput' : { 0 : 'batch_size'} # batch_size에 따라 shape(0번째)가 변동될 수 있음
+    }
+)
+
+print()
+print("Model has been converted to ONNX")
+```
+
+## ONNX_test.py
+
+```python
+import onnxruntime as ort
+import numpy as np
+from transformers import AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("monologg/koelectra-base-v3-discriminator")
+
+test_string = "일은 왜 해도 해도 끝이 없을까? 화가 난다. 많이 힘드시겠어요. \
+								주위에 의논할 상대가 있나요? 그냥 내가 해결하는 게 나아. \
+								남들한테 부담 주고 싶지도 않고. 혼자 해결하기로 했군요. \
+								혼자서 해결하기 힘들면 주위에 의논할 사람을 찾아보세요."
+
+input_ids = tokenizer.encode(test_string, return_tensors='pt')
+input_ids_np = input_ids.cpu().detach().numpy() # tensor를 numpy 타입으로 변경
+
+ort_sess = ort.InferenceSession("monologg-koelectra-base-v3-discriminator.onnx")
+outputs = ort_sess.run(None, {'modelInput':input_ids_np})
+print(outputs)
+```
+
+## 참고 사이트
+
+[Pytorch 모델 ONNX 파일로 변환 _ 모델 서빙](https://moriah-blog.tistory.com/entry/Pytorch-모델-ONNX-파일로-변환-모델-서빙)

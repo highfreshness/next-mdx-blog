@@ -1,0 +1,17 @@
+---
+title: 🚨 cmd.exe 실행 시 바로 꺼지는 현상
+description: cmd.exe 실행 시 바로 꺼지는 현상 문제 해결
+date: 2024-01-01
+published: true
+---
+
+1. 현상
+    1. Anaconda 설치 후 cmd Anaconda Prompt, cmder 실행 시 발 꺼짐
+2. 확인
+    1. 구글링을 통해 Anaconda 설치 후 간혹 이런 현상이 있는 경우가 있다는 사실을 알았고 처리 방법 역시 존재해 학인해 처리
+    2. 처리
+        1. PowerShell은 실행이 되기 때문에 PowerShell 에서 `C:\Windows\System32\reg.exe DELETE "HKCU\Software\Microsoft\Command Processor" /v AutoRun /f` 입력 후 실행
+    
+    ---
+    
+    출처 : [https://deviscreen.tistory.com/85](https://chunggaeguri.tistory.com/entry/Windows-10-CMD-%EB%B0%94%EB%A1%9C-%EA%BA%BC%EC%A7%80%EB%8A%94-%ED%98%84%EC%83%81)

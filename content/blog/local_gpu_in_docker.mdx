@@ -1,0 +1,26 @@
+---
+title: 🧑‍💻 로컬 GPU 컨테이너 환경에 인식 시키기
+description: 로컬 GPU를 컨테이너 환경에서 인식 시켜본다.
+date: 2024-01-01
+published: true
+---
+
+## 작업 배경
+
+Windows 환경에서 컨테이너 작업 시 Docker-desktop에서 CPU만 이용해 작업했었는데 프로젝트 중 GPU 사용이 필요할 경우를 대비해 docker 컨테이너 환경에서 GPU 인식을 위한 세팅 시작
+
+## 테스트
+
+1. 작업 환경
+    1. OS : Windows10 (WSL : Ubuntu 22.04 LTS)
+    2. GPU : RTX-2070 SUPER
+2. 확인 내용
+    1. 윈도우에서 터미널을 이용해 nvidia-smi 명령 입력 시 GPU(RTX-2070) 출력 확인
+    2. ONNXruntime에서 Device 확인 시 CPU로 확인
+        1. gpu를 사용하려면 pip install 시 onnxruntime 이 아닌 onnxruntime-gpu로 설치해야 함
+    3. Windows 환경에서 컨테이너 생성 후 ONNXRuntime으로 GPU 확인 시 CPU로 출력 확인
+    4. 참고 사이트를 통해 리눅스 환경에서 docker-ce와 nvidia-docker2를 세팅 후 컨테이너 환경에서 GPU 인식 확인
+
+## 참고 사이트
+
+[SKT Enterprise](https://www.sktenterprise.com/bizInsight/blogDetail/dev/2470)

@@ -1,0 +1,22 @@
+---
+title: 🚨 MySQL+FastAPI Docker-Compose 중 연결 오류
+description: MySQL+FastAPI Docker-Compose 연결 오류 문제 해결
+date: 2024-01-01
+published: true
+---
+
+MySQL + FastAPI Docker-Compose 중 연결 오류 발생
+
+1. 현상
+    1. Docker-Compose 시 FastAPI, MySQL 의 연결을 할 때 연결이 실패해 컨테이너 생성이 실패
+2. 확인
+    1. MySQL 컨테이너는 정상 동작
+    2. 오류 발생 후 꺼진 FastAPI 서버 컨테이너를 재시작 시 정상적으로 연결
+    3. Docker-Compose down 후 다시 up을 해봤으나 동일한 증상 발생
+3. 해결
+    1. 비슷한 증상을 구글링 해보던 중 해결 사례를 발견
+        
+        [Docker Compose에서 Spring과 MySQL이 연결되지 않는 문제 - Communications link failure](https://velog.io/@wo_ogie/Docker-Spring-Boot-MySQL-Spring%EA%B3%BC-MySQL%EC%9D%B4-%EC%97%B0%EA%B2%B0%EB%90%98%EC%A7%80-%EC%95%8A%EB%8A%94-%EB%AC%B8%EC%A0%9C-Communications-link-failure)
+        
+    2. MySQL 이후 FastAPI 서버 실행 사이 MySQL의 정상 구동까지 약간의 시간이 필요하며 MySQL 컨테이너와 FastAPI 컨테이너의 실행 사이의 시간이 필요했던 문제였음 
+    3. Docker-Compose.yaml 작성 시 FastAPI의 서비스를 실패 시 재시도 할 수 있도록 restart 옵션 부여해 해결

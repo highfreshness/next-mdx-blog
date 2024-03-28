@@ -1,0 +1,17 @@
+---
+title: 🚨 MySQL 접속 시 Public Key Retrieval is not allowed 오류
+description: MySQL 접속 시 Public Key Retrieval is not allowed 오류 문제 해결
+date: 2024-01-01
+published: true
+---
+
+1. 현상
+    1. DBeaver를 이용해 로컬에 설치된 MySQL 접속 시 모든 정보를 입력해도 해당 오류 발생하며 접근이 안됨
+2. 확인
+    1. 구글링 시 MySQL 8.0 부터는 allowPublicKeyRetrieval 옵션을 True로 주어야 기존의 DB명, User이름, 패스워드를 통해 접속이 가능하다고 한다.
+3. 처리
+    1. DBeaver의 MySQL 연결 시 Driver Properties에서 해당 옵션이 False 인 것을 확인하고 True로 변경 후 접속 성공
+
+---
+
+출처 : [https://deviscreen.tistory.com/85](https://deviscreen.tistory.com/85)

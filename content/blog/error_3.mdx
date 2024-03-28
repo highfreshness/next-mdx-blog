@@ -1,0 +1,21 @@
+---
+title: 🚨 mkdir permission denied '/.cache'
+description: mkdir permission denied '/.cache' 문제 해결
+date: 2024-01-01
+published: true
+---
+
+1. 현상
+    1. pytorch로 yolov5 모델의 weight 로딩하는 중 mkdir permission denied '/.cache' 로그 발견
+2. 확인
+    1. weight 파일의 경로가 잘못되었는지 확인 → 정상
+    2. 컨테이너 내부에서 CLI로 weight파일과 폴더의 권한 확인 → 정상
+    3. /.cache를 생성하려고 시도한 위치 확인 및 chmod로 권한 조정 → chmod permission 오류 발생
+3. 해결
+    1. 비슷한 방법을 겪고 해결한 케이스를 찾아 참고함
+        
+        ~~[도커오류:EACCES: permission denied, mkdir 경로명](https://seonghyuk.tistory.com/207)~~ 
+        
+    2. Dockerfile 내에서 참조하려는 ./cache 폴더의 상위 폴더 권한을 조정
+        1. 바로 `RUN chmod -R 777 /tmp` 를 입력하고 이미지를 생성했으나 권한 오류 발생
+        2. 권한 생성 전 `USER root` 입력을 통해 권한을 부여하고 chmod를 성공적으로 적용

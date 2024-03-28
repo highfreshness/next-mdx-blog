@@ -1,0 +1,15 @@
+---
+title: 🚨 backports.zoneinfo 패키지 오류
+description: backports.zoneinfo 패키지 오류 문제 해결
+date: 2024-01-01
+published: true
+---
+
+1. 현상
+    1. Dockerfile을 통해 이미지 생성 중 requirements.txt 파일을 통해 pip install 중 오류 발생
+2. 확인
+    1. 로그 확인 시 backports.zoneinfo 라는 패키지에서 오류가 발생하는 것을 확인
+3. 해결
+    1. 구글링을 통해 같은 오류를 발견했으며 원인은 파이썬 버전이 3.9 미만일 때만 설치를 하는 옵션을 주어 해결 
+        
+        [ERROR: Could not build wheels for backports.zoneinfo, which is required to install pyproject.toml-based projects](https://stackoverflow.com/questions/71712258/error-could-not-build-wheels-for-backports-zoneinfo-which-is-required-to-insta)
