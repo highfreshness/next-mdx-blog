@@ -844,7 +844,7 @@ AND a.deptno=b.deptno;
             WHERE EXISTS (SELECT profno FROM professor WHERE comm IS NOT NULL);
             ```
             
-            - <> NOT EXISTS
+            - `<> NOT EXISTS`
             - 조건에 해당 하는 값이 있으면(없으면) 메인쿼리 조건절이 거짓(참)
             
             ```sql
